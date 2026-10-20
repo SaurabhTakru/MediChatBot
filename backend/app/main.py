@@ -38,8 +38,39 @@ def collections(role: str, user=Depends(current_user)):
     return {"role":role, "collections":COLLECTIONS[role]}
 
 def is_analytical(question: str) -> bool:
-    terms = ("how many", "count", "statistics", "total", "average", "most open", "last month", "claims", "maintenance tickets", "escalated")
-    return any(t in question.lower() for t in terms)
+    question_lower = question.lower()
+
+    analytics_terms = (
+     "how many",
+    "count",
+    "statistics",
+    "total number",
+    "total count",
+    "average",
+    "number of",
+    "percentage",
+    "percent",
+    "trend",
+    )
+
+    database_entities = (
+        "claim",
+        "claims",
+        "maintenance ticket",
+        "maintenance tickets",
+        "maintenance_ticket",
+        "maintenance_tickets",
+    )
+
+    has_analytics_intent = any(
+        term in question_lower for term in analytics_terms
+    )
+
+    has_database_entity = any(
+        entity in question_lower for entity in database_entities
+    )
+
+    return has_analytics_intent and has_database_entity
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(body: ChatRequest, user=Depends(current_user)):

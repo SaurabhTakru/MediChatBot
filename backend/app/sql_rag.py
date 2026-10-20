@@ -7,8 +7,55 @@ from .config import settings
 ALLOWED_TABLES = {"claims", "maintenance_tickets"}
 
 def schema_text(conn):
-    rows = conn.execute("SELECT name, sql FROM sqlite_master WHERE type='table'").fetchall()
-    return "\n".join(f"{name}: {sql}" for name, sql in rows if name in ALLOWED_TABLES)
+    parts = []
+
+    for table in ALLOWED_TABLES:
+        table_sql = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+
+        parts.append(f"{table}:")
+        parts.append(table_sql[0] if table_sql else "Schema unavailable")
+
+        columns = conn.execute(f"PRAGMA table_info({table})").fetchall()
+
+        for column in columns:
+            column_name = column[1]
+
+            # Show actual values for low-cardinality text columns.
+            if column[2].upper() in ("TEXT", "VARCHAR"):
+                values = conn.execute(
+                    f"""
+                    SELECT DISTINCT "{column_name}"
+                    FROM {table}
+                    WHERE "{column_name}" IS NOT NULL
+                    LIMIT 20
+                    """
+                ).fetchall()
+
+                if values and len(values) <= 20:
+                    value_list = ", ".join(str(row[0]) for row in values)
+                    parts.append(
+                        f"Example values for {column_name}: {value_list}"
+                    )
+
+            # Show date range for date columns.
+            if "date" in column_name.lower():
+                date_range = conn.execute(
+                    f"""
+                    SELECT MIN("{column_name}"), MAX("{column_name}")
+                    FROM {table}
+                    """
+                ).fetchone()
+
+                parts.append(
+                    f"{column_name} range: {date_range[0]} to {date_range[1]}"
+                )
+
+        parts.append("")
+
+    return "\n".join(parts)
 
 def extract_sql(raw: str) -> str:
     match = re.search(r"```(?:sql)?\s*(.*?)```", raw, re.I | re.S)

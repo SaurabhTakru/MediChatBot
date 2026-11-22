@@ -89,7 +89,6 @@ git clone https://github.com/SaurabhTakru/MediChatBot.git
 cd MediChatBot
 ```
 
-Replace `<YOUR_GITHUB_REPOSITORY_URL>` with the GitHub repository URL.
 
 ---
 
@@ -177,6 +176,8 @@ Configure:
 ```env
 SECRET_KEY=your-local-secret
 DEMO_PASSWORD=demo123
+
+- Groq API — cloud LLM inference via OpenAI-compatible API
 
 QDRANT_URL=http://localhost:6333
 QDRANT_API_KEY=
@@ -580,10 +581,29 @@ Nurse asks:
 
 This is important because an adversarial prompt cannot override the database-level retrieval filter. The assignment specifically requires that a nurse must not be able to retrieve billing or equipment documents even when explicitly instructed to ignore the system's restrictions.     d8ca7f4c-c83d-4600-9403-98235c7…
 
+## RBAC Adversarial Testing Evidence
+
+Screenshots for the RBAC adversarial tests are available in:
+
+`backend/screenshot/`
 
 
+### SQL RAG Accuracy Verification
 
+SQL RAG was verified against the supplied SQLite database using representative
+status and date-based queries.
 
+| Query | Database result | MediBot result |
+|---|---:|---:|
+| Pending claims | 17 | 17 |
+| Escalated claims | 8 | 8 |
+| Escalated maintenance tickets | 10 | 10 |
+| Open maintenance tickets | 11 | 11 |
+| Claims submitted in January 2024 | 6 | 6 |
+
+The database contains claims submitted between 2024-01-03 and 2024-12-19.
+Date-based evaluation therefore uses a date within the supplied dataset rather
+than a relative period such as "last month".
 
 ## Hybrid vs Dense Retrieval Evaluation
 
